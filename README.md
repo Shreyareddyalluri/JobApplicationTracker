@@ -108,6 +108,3 @@ Project/
 | GET | `/api/auth/gmail/status` | `{ connected: true/false }` |
 | POST | `/api/gmail/sync` | Fetch inbox, parse emails, return suggested applications |
 
----
-
-See **INTERVIEW_NOTES.md** for how to present this project in your recruiter 1:1.
