@@ -424,10 +424,11 @@ function App() {
       )}
 
       <div className="content">
-        {gmailSuggestions.length > 0 && (
-          <section className="card gmail-card">
-            <h2>From your inbox — add to tracker</h2>
-            <ul className="suggestion-list">
+        <section className="card gmail-card">
+          <h2>From your inbox — add to tracker</h2>
+          {gmailSuggestions.length > 0 ? (
+            <>
+              <ul className="suggestion-list">
               {gmailSuggestions.map((sug) => {
                 const gmailUrl = `https://mail.google.com/mail/u/0/#inbox/${sug.threadId || sug.messageId}`;
                 return (
@@ -466,11 +467,14 @@ function App() {
                 );
               })}
             </ul>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={addAllSuggestions} style={{ marginTop: '1rem' }}>
-              Add all ({gmailSuggestions.length})
-            </button>
-          </section>
-        )}
+              <button type="button" className="btn btn-ghost btn-sm" onClick={addAllSuggestions} style={{ marginTop: '1rem' }}>
+                Add all ({gmailSuggestions.length})
+              </button>
+            </>
+          ) : (
+            <p className="muted">Sync from Gmail to see job application emails here</p>
+          )}
+        </section>
 
         <section className="list-section">
           <h2>Your applications</h2>

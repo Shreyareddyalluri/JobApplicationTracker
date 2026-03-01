@@ -71,22 +71,26 @@ body {
 }
 
 .gmail-card {
-  flex: 1;
+  flex: 0 0 50%;
   overflow-y: auto;
   overflow-x: hidden;
   border-right: 1px solid #1e293b;
   padding: 2rem;
   min-width: 0;
   background: #0f172a;
+  display: flex;
+  flex-direction: column;
 }
 
 .list-section {
-  flex: 1;
+  flex: 0 0 50%;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 2rem;
   min-width: 0;
   background: #0f172a;
+  display: flex;
+  flex-direction: column;
 }
 
 @media (max-width: 1024px) {
@@ -95,8 +99,13 @@ body {
   }
 
   .gmail-card {
+    flex: 0 0 50%;
     border-right: none;
     border-bottom: 1px solid #1e293b;
+  }
+
+  .list-section {
+    flex: 0 0 50%;
   }
 
   .list-section {
