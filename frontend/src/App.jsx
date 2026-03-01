@@ -415,11 +415,15 @@ function App() {
           <section className="card gmail-card">
             <h2>From your inbox — add to tracker</h2>
             <ul className="suggestion-list">
-              {gmailSuggestions.map((sug) => (
+              {gmailSuggestions.map((sug) => {
+                const gmailUrl = `https://mail.google.com/mail/u/0/#inbox/${sug.threadId || sug.messageId}`;
+                return (
                 <li key={sug.messageId || `${sug.company}-${sug.role}`} className="suggestion-item">
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ marginBottom: '0.5rem' }}>
-                      <strong>{sug.company}</strong> · {sug.role}
+                    <div style={{ marginBottom: '0.5rem', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <a href={gmailUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit', flex: 1, cursor: 'pointer', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <strong style={{ color: '#f8fafc' }}>{sug.company}</strong> · {sug.role}
+                      </a>
                       <span className={`status status-${sug.status.toLowerCase()}`}>{sug.status}</span>
                     </div>
                     {sug.aiSummary && (
@@ -443,11 +447,17 @@ function App() {
                       </div>
                     )}
                   </div>
-                  <button type="button" className="btn btn-primary btn-sm" onClick={() => addSuggestion(sug)} style={{ flexShrink: 0 }}>
-                    Add
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                    <a href={gmailUrl} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm" title="Open in Gmail" style={{ padding: '0.4rem 0.6rem', fontSize: '0.9rem' }}>
+                      📧
+                    </a>
+                    <button type="button" className="btn btn-primary btn-sm" onClick={() => addSuggestion(sug)}>
+                      Add
+                    </button>
+                  </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
             <button type="button" className="btn btn-ghost btn-sm" onClick={addAllSuggestions}>
               Add all ({gmailSuggestions.length})
