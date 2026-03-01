@@ -333,28 +333,6 @@ function App() {
         </div>
       )}
 
-      {gmailSuggestions.length > 0 && (
-        <section className="card gmail-card">
-          <h2>From your inbox — add to tracker</h2>
-          <ul className="suggestion-list">
-            {gmailSuggestions.map((sug) => (
-              <li key={sug.messageId || `${sug.company}-${sug.role}`} className="suggestion-item">
-                <div>
-                  <strong>{sug.company}</strong> · {sug.role}
-                  <span className={`status status-${sug.status.toLowerCase()}`}>{sug.status}</span>
-                </div>
-                <button type="button" className="btn btn-primary btn-sm" onClick={() => addSuggestion(sug)}>
-                  Add
-                </button>
-              </li>
-            ))}
-          </ul>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={addAllSuggestions}>
-            Add all ({gmailSuggestions.length})
-          </button>
-        </section>
-      )}
-
       {showForm && (
         <section className="card form-card">
           <h2>{editingId ? 'Edit application' : 'New application'}</h2>
@@ -432,7 +410,30 @@ function App() {
         </section>
       )}
 
-      <section className="list-section">
+      <div className="content">
+        {gmailSuggestions.length > 0 && (
+          <section className="card gmail-card">
+            <h2>From your inbox — add to tracker</h2>
+            <ul className="suggestion-list">
+              {gmailSuggestions.map((sug) => (
+                <li key={sug.messageId || `${sug.company}-${sug.role}`} className="suggestion-item">
+                  <div>
+                    <strong>{sug.company}</strong> · {sug.role}
+                    <span className={`status status-${sug.status.toLowerCase()}`}>{sug.status}</span>
+                  </div>
+                  <button type="button" className="btn btn-primary btn-sm" onClick={() => addSuggestion(sug)}>
+                    Add
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={addAllSuggestions}>
+              Add all ({gmailSuggestions.length})
+            </button>
+          </section>
+        )}
+
+        <section className="list-section">
         <h2>Your applications</h2>
         {loading ? (
           <p className="muted">Loading…</p>
@@ -475,6 +476,7 @@ function App() {
           </ul>
         )}
       </section>
+      </div>
     </div>
   );
 }
