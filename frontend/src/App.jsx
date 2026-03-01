@@ -20,6 +20,7 @@ function App() {
   const [syncDebug, setSyncDebug] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState(null);
   const [form, setForm] = useState({
+    subject: '',
     company: '',
     role: '',
     status: 'Applied',
@@ -149,6 +150,7 @@ function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          subject: sug.subject || '',
           company: sug.company,
           role: sug.role,
           status: sug.status,
@@ -179,6 +181,7 @@ function App() {
 
   function resetForm() {
     setForm({
+      subject: '',
       company: '',
       role: '',
       status: 'Applied',
@@ -218,6 +221,7 @@ function App() {
 
   function startEdit(app) {
     setForm({
+      subject: app.subject || '',
       company: app.company,
       role: app.role,
       status: app.status,
@@ -337,6 +341,15 @@ function App() {
         <section className="card form-card">
           <h2>{editingId ? 'Edit application' : 'New application'}</h2>
           <form onSubmit={handleSubmit}>
+            <label>
+              Subject (optional)
+              <input
+                name="subject"
+                value={form.subject}
+                onChange={handleChange}
+                placeholder="e.g. Application for Senior Engineer"
+              />
+            </label>
             <div className="form-row">
               <label>
                 Company *
@@ -418,96 +431,107 @@ function App() {
               {gmailSuggestions.map((sug) => {
                 const gmailUrl = `https://mail.google.com/mail/u/0/#inbox/${sug.threadId || sug.messageId}`;
                 return (
-                <li key={sug.messageId || `${sug.company}-${sug.role}`} className="suggestion-item">
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ marginBottom: '0.5rem', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                      <a href={gmailUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit', flex: 1, cursor: 'pointer', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                        <strong style={{ color: '#f8fafc' }}>{sug.company}</strong> · {sug.role}
-                      </a>
+                  <li key={sug.messageId || `${sug.company}-${sug.role}`} className="suggestion-card">
+                    <div className="suggestion-header">
+                      <div className="suggestion-title">
+                        {sug.subject || sug.role}
+                      </div>
                       <span className={`status status-${sug.status.toLowerCase()}`}>{sug.status}</span>
                     </div>
-                    {sug.aiSummary && (
-                      <div style={{ fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '0.5rem' }}>
-                        {sug.aiSummary}
-                      </div>
-                    )}
+                    
+                    <div className="suggestion-company">
+                      {sug.company}
+                    </div>
+
                     {sug.aiActionItems && sug.aiActionItems.length > 0 && (
-                      <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '0.5rem' }}>
-                        <div style={{ fontWeight: 500, marginBottom: '0.25rem' }}>Action items:</div>
-                        <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
+                      <div className="suggestion-actions">
+                        <div className="actions-label">Action items</div>
+                        <ul className="actions-list">
                           {sug.aiActionItems.map((item, idx) => (
                             <li key={idx}>{item}</li>
                           ))}
                         </ul>
                       </div>
                     )}
-                    {sug.aiStatus && sug.aiStatus !== sug.status && (
-                      <div style={{ fontSize: '0.8rem', color: '#60a5fa', marginBottom: '0.5rem' }}>
-                        Suggested: <span className={`status status-${sug.aiStatus.toLowerCase()}`}>{sug.aiStatus}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
-                    <a href={gmailUrl} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm" title="Open in Gmail" style={{ padding: '0.4rem 0.6rem', fontSize: '0.9rem' }}>
-                      📧
-                    </a>
-                    <button type="button" className="btn btn-primary btn-sm" onClick={() => addSuggestion(sug)}>
-                      Add
-                    </button>
-                  </div>
-                </li>
+
+                    <div className="suggestion-buttons">
+                      <a href={gmailUrl} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm" title="Open in Gmail">
+                        📧 Gmail
+                      </a>
+                      <button type="button" className="btn btn-primary btn-sm" onClick={() => addSuggestion(sug)}>
+                        Add
+                      </button>
+                    </div>
+                  </li>
                 );
               })}
             </ul>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={addAllSuggestions}>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={addAllSuggestions} style={{ marginTop: '1rem' }}>
               Add all ({gmailSuggestions.length})
             </button>
           </section>
         )}
 
         <section className="list-section">
-        <h2>Your applications</h2>
-        {loading ? (
-          <p className="muted">Loading…</p>
-        ) : filteredList.length === 0 ? (
-          <p className="muted">No applications yet. Add one to get started.</p>
-        ) : (
-          <ul className="application-list">
-            {filteredList.map((app) => (
-              <li key={app.id} className="card application-card">
-                <div className="app-main">
-                  <div>
-                    <strong className="company">{app.company}</strong>
-                    <span className="role">{app.role}</span>
+          <h2>Your applications</h2>
+          {loading ? (
+            <p className="muted">Loading…</p>
+          ) : filteredList.length === 0 ? (
+            <p className="muted">No applications yet. Add one to get started.</p>
+          ) : (
+            <ul className="application-list">
+              {filteredList.map((app) => (
+                <li key={app.id} className="application-card">
+                  <div className="app-header">
+                    <div className="app-title">
+                      {app.subject || app.role}
+                    </div>
+                    <span className={`status status-${app.status.toLowerCase()}`}>
+                      {app.status}
+                    </span>
                   </div>
-                </div>
-                <div className="app-meta">
-                  Applied: {app.appliedDate}
-                  {app.notes && (
-                    <span className="notes"> · {app.notes}</span>
+
+                  <div className="app-company">
+                    {app.company}
+                  </div>
+
+                  {app.aiActionItems && app.aiActionItems.length > 0 && (
+                    <div className="app-actions">
+                      <div className="actions-label">Action items</div>
+                      <ul className="actions-list">
+                        {app.aiActionItems.map((item, idx) => (
+                          <li key={idx}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
-                </div>
-                {app.link && (
-                  <a href={app.link} target="_blank" rel="noopener noreferrer" className="link">
-                    View job posting
-                  </a>
-                )}
-                <div className="card-actions">
-                  <span className={`status status-${app.status.toLowerCase()}`}>
-                    {app.status}
-                  </span>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => startEdit(app)}>
-                    Edit
-                  </button>
-                  <button type="button" className="btn btn-ghost btn-sm danger" onClick={() => handleDelete(app.id)}>
-                    Delete
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+
+                  <div className="app-meta">
+                    Applied: {app.appliedDate}
+                    {app.notes && (
+                      <span className="notes"> · {app.notes}</span>
+                    )}
+                  </div>
+
+                  {app.link && (
+                    <a href={app.link} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm" style={{ marginTop: '0.5rem', display: 'inline-block' }}>
+                      🔗 View posting
+                    </a>
+                  )}
+
+                  <div className="app-footer">
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => startEdit(app)}>
+                      Edit
+                    </button>
+                    <button type="button" className="btn btn-ghost btn-sm danger" onClick={() => handleDelete(app.id)}>
+                      Delete
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
     </div>
   );

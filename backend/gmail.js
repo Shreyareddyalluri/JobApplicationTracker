@@ -258,6 +258,7 @@ function parseEmailForApplication(msg, lenient = false, acceptAny = false) {
   } catch {}
 
   return {
+    subject: subject || 'Job Application',
     company,
     role,
     status,
