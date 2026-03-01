@@ -82,7 +82,7 @@ Dashboard Updates
 - Node.js
 - Express
 - Google Gmail API
-- OpenAI / LLM API
+- **Ollama (Local LLM Runtime)**
 
 **Storage (Personal Project)**
 
@@ -122,12 +122,18 @@ JOBAPPLICATIONTRACKER
 
 Create a `.env` file inside `backend/`:
 
+````env
+PORT=5000
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3
 ```env
 PORT=5000
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 OPENAI_API_KEY=your_openai_api_key
-```
+````
 
 ---
 
@@ -143,6 +149,30 @@ OPENAI_API_KEY=your_openai_api_key
 ```
 http://localhost:5000/auth/google/callback
 ```
+
+---
+
+## 🧠 Local LLM (Ollama)
+
+This project uses **Ollama** to run LLMs locally for email understanding and classification.
+
+### Install Ollama
+
+[https://ollama.com](https://ollama.com)
+
+### Start Ollama
+
+```bash
+ollama serve
+```
+
+### Pull a Model
+
+```bash
+ollama pull llama3
+```
+
+> You can replace the model with any supported local model (e.g., `mistral`, `phi3`).
 
 ---
 
@@ -188,6 +218,7 @@ http://localhost:5173
 - OAuth tokens stored locally for personal use
 - `.env` and token files are excluded via `.gitignore`
 - Read-only Gmail access (`gmail.readonly` scope)
+- Email analysis runs **locally via Ollama**, keeping inbox data on your machine
 
 ---
 
