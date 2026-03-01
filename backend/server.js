@@ -195,6 +195,12 @@ app.get('/api/auth/gmail/status', async (req, res) => {
 app.post('/api/gmail/sync', async (req, res) => {
   try {
     const result = await gmail.fetchAndParseEmails(req.body.maxMessages || 100, { debug: true });
+    
+    // Enhance applications with AI summaries and action items
+    if (result.applications && result.applications.length > 0) {
+      result.applications = await gmail.enhanceApplicationsWithAI(result.applications);
+    }
+    
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message || 'Gmail sync failed', connected: false });

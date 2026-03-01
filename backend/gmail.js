@@ -1,6 +1,7 @@
 const { google } = require('googleapis');
 const path = require('path');
 const fs = require('fs');
+const { summarizeEmail } = require('./llm');
 
 const TOKEN_PATH = path.join(__dirname, 'data', 'gmail_tokens.json');
 const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
@@ -345,6 +346,46 @@ async function fetchAndParseEmails(maxMessages = 100, options = {}) {
   }
 }
 
+/**
+ * Enhance applications with AI summaries and action items
+ * Calls Groq LLM to analyze each application
+ */
+async function enhanceApplicationsWithAI(applications) {
+  const enhanced = [];
+  for (const app of applications) {
+    try {
+      // Create email body from application data
+      const emailContent = `
+Subject: Application for ${app.role} at ${app.company}
+Status: ${app.status}
+Applied Date: ${app.appliedDate}
+Notes: ${app.notes}
+      `.trim();
+
+      const aiData = await summarizeEmail(emailContent);
+      
+      enhanced.push({
+        ...app,
+        aiSummary: aiData.summary,
+        aiActionItems: aiData.actionItems,
+        aiStatus: aiData.suggestedStatus,
+        aiProcessed: true,
+      });
+    } catch (err) {
+      console.error(`Error enhancing application for ${app.company}:`, err.message);
+      // If LLM fails, return original without AI data
+      enhanced.push({
+        ...app,
+        aiSummary: null,
+        aiActionItems: [],
+        aiStatus: app.status,
+        aiProcessed: false,
+      });
+    }
+  }
+  return enhanced;
+}
+
 module.exports = {
   isGmailConfigured,
   getAuthUrl,
@@ -353,4 +394,5 @@ module.exports = {
   getAuthenticatedClient,
   getConnectedEmail,
   fetchAndParseEmails,
+  enhanceApplicationsWithAI,
 };

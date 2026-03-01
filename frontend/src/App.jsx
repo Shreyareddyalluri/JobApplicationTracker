@@ -417,11 +417,33 @@ function App() {
             <ul className="suggestion-list">
               {gmailSuggestions.map((sug) => (
                 <li key={sug.messageId || `${sug.company}-${sug.role}`} className="suggestion-item">
-                  <div>
-                    <strong>{sug.company}</strong> · {sug.role}
-                    <span className={`status status-${sug.status.toLowerCase()}`}>{sug.status}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ marginBottom: '0.5rem' }}>
+                      <strong>{sug.company}</strong> · {sug.role}
+                      <span className={`status status-${sug.status.toLowerCase()}`}>{sug.status}</span>
+                    </div>
+                    {sug.aiSummary && (
+                      <div style={{ fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '0.5rem' }}>
+                        {sug.aiSummary}
+                      </div>
+                    )}
+                    {sug.aiActionItems && sug.aiActionItems.length > 0 && (
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '0.5rem' }}>
+                        <div style={{ fontWeight: 500, marginBottom: '0.25rem' }}>Action items:</div>
+                        <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
+                          {sug.aiActionItems.map((item, idx) => (
+                            <li key={idx}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {sug.aiStatus && sug.aiStatus !== sug.status && (
+                      <div style={{ fontSize: '0.8rem', color: '#60a5fa', marginBottom: '0.5rem' }}>
+                        Suggested: <span className={`status status-${sug.aiStatus.toLowerCase()}`}>{sug.aiStatus}</span>
+                      </div>
+                    )}
                   </div>
-                  <button type="button" className="btn btn-primary btn-sm" onClick={() => addSuggestion(sug)}>
+                  <button type="button" className="btn btn-primary btn-sm" onClick={() => addSuggestion(sug)} style={{ flexShrink: 0 }}>
                     Add
                   </button>
                 </li>
