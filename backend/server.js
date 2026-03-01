@@ -1,19 +1,22 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const fs = require('fs');
-const path = require('path');
-const gmail = require('./gmail');
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const fs = require("fs");
+const path = require("path");
+const gmail = require("./gmail");
 
 const app = express();
 const PORT = 3001;
-const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
-const DATA_FILE = path.join(__dirname, 'data', 'applications.json');
+const FRONTEND_URL = (
+  process.env.FRONTEND_URL || "http://localhost:5173"
+).replace(/\/$/, "");
+const DATA_FILE = path.join(__dirname, "data", "applications.json");
 
 // Allow frontend from any localhost port (5173, 5174, 5175, etc.) so proxy works
 const corsOptions = {
   origin: (origin, cb) => {
-    if (!origin || /^https?:\/\/localhost(:\d+)?$/.test(origin)) return cb(null, true);
+    if (!origin || /^https?:\/\/localhost(:\d+)?$/.test(origin))
+      return cb(null, true);
     if (origin === FRONTEND_URL) return cb(null, true);
     return cb(null, true);
   },
@@ -23,8 +26,8 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 // Health check so frontend can verify backend is reachable
-app.get('/api/health', (req, res) => {
-  res.json({ ok: true, message: 'Backend is running' });
+app.get("/api/health", (req, res) => {
+  res.json({ ok: true, message: "Backend is running" });
 });
 
 function ensureDataFile() {
@@ -37,51 +40,64 @@ function ensureDataFile() {
 
 function readApplications() {
   ensureDataFile();
-  const data = fs.readFileSync(DATA_FILE, 'utf8');
+  const data = fs.readFileSync(DATA_FILE, "utf8");
   return JSON.parse(data);
 }
 
 function writeApplications(applications) {
   ensureDataFile();
-  fs.writeFileSync(DATA_FILE, JSON.stringify(applications, null, 2), 'utf8');
+  fs.writeFileSync(DATA_FILE, JSON.stringify(applications, null, 2), "utf8");
 }
 
 // GET all applications (optional ?status= filter)
-app.get('/api/applications', (req, res) => {
+app.get("/api/applications", (req, res) => {
   try {
     let applications = readApplications();
     const status = req.query.status;
-    if (status) applications = applications.filter(a => a.status === status);
+    if (status) applications = applications.filter((a) => a.status === status);
     res.json(applications);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to load applications' });
+    res.status(500).json({ error: "Failed to load applications" });
   }
 });
 
 // GET one application by id
-app.get('/api/applications/:id', (req, res) => {
+app.get("/api/applications/:id", (req, res) => {
   const applications = readApplications();
-  const app_ = applications.find(a => a.id === req.params.id);
-  if (!app_) return res.status(404).json({ error: 'Not found' });
+  const app_ = applications.find((a) => a.id === req.params.id);
+  if (!app_) return res.status(404).json({ error: "Not found" });
   res.json(app_);
 });
 
 // POST create new application
-app.post('/api/applications', (req, res) => {
-  const { company, role, status, appliedDate, notes, link } = req.body;
+app.post("/api/applications", (req, res) => {
+  const {
+    company,
+    role,
+    status,
+    appliedDate,
+    notes,
+    link,
+    subject,
+    threadId,
+    messageId,
+  } = req.body;
   if (!company || !role) {
-    return res.status(400).json({ error: 'Company and role are required' });
+    return res.status(400).json({ error: "Company and role are required" });
   }
   const applications = readApplications();
   const id = Date.now().toString(36) + Math.random().toString(36).slice(2);
   const newApp = {
     id,
+    subject: subject ? String(subject).trim() : "",
     company: String(company).trim(),
     role: String(role).trim(),
-    status: status || 'Applied',
+    status: status || "Applied",
     appliedDate: appliedDate || new Date().toISOString().slice(0, 10),
-    notes: notes ? String(notes).trim() : '',
-    link: link ? String(link).trim() : '',
+    notes: notes ? String(notes).trim() : "",
+    link: link ? String(link).trim() : "",
+    threadId: threadId ? String(threadId).trim() : "",
+    messageId: messageId ? String(messageId).trim() : "",
     createdAt: new Date().toISOString(),
   };
   applications.push(newApp);
@@ -90,11 +106,21 @@ app.post('/api/applications', (req, res) => {
 });
 
 // PATCH update application
-app.patch('/api/applications/:id', (req, res) => {
+app.patch("/api/applications/:id", (req, res) => {
   const applications = readApplications();
-  const index = applications.findIndex(a => a.id === req.params.id);
-  if (index === -1) return res.status(404).json({ error: 'Not found' });
-  const allowed = ['company', 'role', 'status', 'appliedDate', 'notes', 'link'];
+  const index = applications.findIndex((a) => a.id === req.params.id);
+  if (index === -1) return res.status(404).json({ error: "Not found" });
+  const allowed = [
+    "company",
+    "role",
+    "status",
+    "appliedDate",
+    "notes",
+    "link",
+    "subject",
+    "threadId",
+    "messageId",
+  ];
   for (const key of allowed) {
     if (req.body[key] !== undefined) applications[index][key] = req.body[key];
   }
@@ -103,10 +129,11 @@ app.patch('/api/applications/:id', (req, res) => {
 });
 
 // DELETE application
-app.delete('/api/applications/:id', (req, res) => {
+app.delete("/api/applications/:id", (req, res) => {
   const applications = readApplications();
-  const filtered = applications.filter(a => a.id !== req.params.id);
-  if (filtered.length === applications.length) return res.status(404).json({ error: 'Not found' });
+  const filtered = applications.filter((a) => a.id !== req.params.id);
+  if (filtered.length === applications.length)
+    return res.status(404).json({ error: "Not found" });
   writeApplications(filtered);
   res.status(204).send();
 });
@@ -114,71 +141,106 @@ app.delete('/api/applications/:id', (req, res) => {
 // --- Gmail integration ---
 
 // So the frontend can build the Connect Gmail link (avoids proxy issues)
-app.get('/api/config', (req, res) => {
+app.get("/api/config", (req, res) => {
   const backendUrl = process.env.BACKEND_URL || `http://localhost:${PORT}`;
-  res.json({ backendUrl, frontendUrl: FRONTEND_URL, gmailConfigured: gmail.isGmailConfigured() });
+  res.json({
+    backendUrl,
+    frontendUrl: FRONTEND_URL,
+    gmailConfigured: gmail.isGmailConfigured(),
+  });
 });
 
 // Redirect user to Google OAuth (always send a valid HTTP response)
 // Optional ?frontend=http://localhost:5176 so we redirect back to the port you're actually using
-app.get('/api/auth/gmail', (req, res) => {
-  const returnTo = req.query.frontend && /^https?:\/\/localhost(:\d+)?$/.test(req.query.frontend)
-    ? req.query.frontend.replace(/\/$/, '')
-    : FRONTEND_URL;
+app.get("/api/auth/gmail", (req, res) => {
+  const returnTo =
+    req.query.frontend &&
+    /^https?:\/\/localhost(:\d+)?$/.test(req.query.frontend)
+      ? req.query.frontend.replace(/\/$/, "")
+      : FRONTEND_URL;
   if (!gmail.isGmailConfigured()) {
-    res.status(302).setHeader('Location', `${returnTo}?gmail_error=config`).end();
+    res
+      .status(302)
+      .setHeader("Location", `${returnTo}?gmail_error=config`)
+      .end();
     return;
   }
   try {
     const url = gmail.getAuthUrl(returnTo);
-    if (url && typeof url === 'string') {
-      res.status(302).setHeader('Location', url).end();
+    if (url && typeof url === "string") {
+      res.status(302).setHeader("Location", url).end();
     } else {
-      res.status(302).setHeader('Location', `${returnTo}?gmail_error=config`).end();
+      res
+        .status(302)
+        .setHeader("Location", `${returnTo}?gmail_error=config`)
+        .end();
     }
   } catch (err) {
-    res.status(302).setHeader('Location', `${returnTo}?gmail_error=config`).end();
+    res
+      .status(302)
+      .setHeader("Location", `${returnTo}?gmail_error=config`)
+      .end();
   }
 });
 
 // OAuth callback: exchange code for tokens, redirect back to app (use state = frontend URL if present)
-app.get('/api/auth/gmail/callback', async (req, res) => {
-  const returnTo = req.query.state && /^https?:\/\/localhost(:\d+)?$/.test(req.query.state)
-    ? req.query.state.replace(/\/$/, '')
-    : FRONTEND_URL;
+app.get("/api/auth/gmail/callback", async (req, res) => {
+  const returnTo =
+    req.query.state && /^https?:\/\/localhost(:\d+)?$/.test(req.query.state)
+      ? req.query.state.replace(/\/$/, "")
+      : FRONTEND_URL;
   const redirect = (key, extra) => {
-    const q = extra ? `&msg=${encodeURIComponent(extra)}` : '';
-    res.status(302).setHeader('Location', `${returnTo}?gmail_error=${key}${q}`).end();
+    const q = extra ? `&msg=${encodeURIComponent(extra)}` : "";
+    res
+      .status(302)
+      .setHeader("Location", `${returnTo}?gmail_error=${key}${q}`)
+      .end();
   };
   const redirectOk = () => {
-    res.status(302).setHeader('Location', `${returnTo}?gmail_connected=1`).end();
+    res
+      .status(302)
+      .setHeader("Location", `${returnTo}?gmail_connected=1`)
+      .end();
   };
-  console.log('[Gmail] Callback hit. state=', req.query.state, 'returnTo=', returnTo, 'error=', req.query.error);
+  console.log(
+    "[Gmail] Callback hit. state=",
+    req.query.state,
+    "returnTo=",
+    returnTo,
+    "error=",
+    req.query.error,
+  );
   if (req.query.error) {
-    const errMsg = req.query.error === 'redirect_uri_mismatch'
-      ? 'Redirect URI mismatch. In Google Cloud Console, set Authorized redirect URI to: http://localhost:3001/api/auth/gmail/callback'
-      : req.query.error_description || req.query.error;
-    console.log('[Gmail] OAuth error from Google:', errMsg);
-    redirect(req.query.error === 'redirect_uri_mismatch' ? 'redirect_uri_mismatch' : 'denied', errMsg);
+    const errMsg =
+      req.query.error === "redirect_uri_mismatch"
+        ? "Redirect URI mismatch. In Google Cloud Console, set Authorized redirect URI to: http://localhost:3001/api/auth/gmail/callback"
+        : req.query.error_description || req.query.error;
+    console.log("[Gmail] OAuth error from Google:", errMsg);
+    redirect(
+      req.query.error === "redirect_uri_mismatch"
+        ? "redirect_uri_mismatch"
+        : "denied",
+      errMsg,
+    );
     return;
   }
   if (!req.query.code) {
-    console.log('[Gmail] No code in callback');
-    redirect('no_code');
+    console.log("[Gmail] No code in callback");
+    redirect("no_code");
     return;
   }
   try {
     await gmail.saveTokensFromCode(req.query.code);
-    console.log('[Gmail] Tokens saved successfully');
+    console.log("[Gmail] Tokens saved successfully");
     redirectOk();
   } catch (err) {
-    console.error('[Gmail] Token exchange failed:', err.message);
-    redirect('exchange', err.message || 'Token exchange failed');
+    console.error("[Gmail] Token exchange failed:", err.message);
+    redirect("exchange", err.message || "Token exchange failed");
   }
 });
 
 // Check if Gmail is connected and get connected email
-app.get('/api/auth/gmail/status', async (req, res) => {
+app.get("/api/auth/gmail/status", async (req, res) => {
   const tokens = gmail.getStoredTokens();
   if (!tokens) {
     return res.json({ connected: false, email: null });
@@ -191,19 +253,62 @@ app.get('/api/auth/gmail/status', async (req, res) => {
   }
 });
 
-// Sync from Gmail: fetch recent emails, parse, return suggested applications
-app.post('/api/gmail/sync', async (req, res) => {
+// Sync from Gmail using Server-Sent Events so the frontend gets real-time progress.
+// The client opens a GET /api/gmail/sync/stream and receives status events as the
+// pipeline runs: listing → keyword filtering → AI classifying → AI summarizing → done.
+app.get("/api/gmail/sync/stream", async (req, res) => {
+  // SSE headers — keep connection alive, disable buffering
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no"); // nginx compatibility
+  res.flushHeaders();
+
+  // Helper: send a typed SSE event to the client
+  const send = (type, payload) => {
+    res.write(`data: ${JSON.stringify({ type, ...payload })}\n\n`);
+  };
+
   try {
-    const result = await gmail.fetchAndParseEmails(req.body.maxMessages || 100, { debug: true });
-    
-    // Enhance applications with AI summaries and action items
-    if (result.applications && result.applications.length > 0) {
-      result.applications = await gmail.enhanceApplicationsWithAI(result.applications);
+    send("status", { message: "📬 Connecting to Gmail…" });
+    const result = await gmail.fetchAndParseEmails(
+      parseInt(req.query.maxMessages) || 100,
+      {
+        debug: true,
+        onProgress: (type, payload) => send(type, payload),
+      },
+    );
+
+    if (!result.connected) {
+      send("error", { message: "Gmail not connected" });
+      res.end();
+      return;
     }
-    
-    res.json(result);
+
+    send("status", {
+      message: `✅ Found ${result.applications.length} job emails — running AI analysis…`,
+    });
+
+    let enhanced = result.applications;
+    if (enhanced.length > 0) {
+      enhanced = await gmail.enhanceApplicationsWithAI(
+        enhanced,
+        (done, total) => {
+          send("status", { message: `🤖 AI processing ${done}/${total}…` });
+        },
+      );
+    }
+
+    send("status", { message: `✨ Done — ${enhanced.length} emails ready` });
+    send("done", {
+      connected: result.connected,
+      applications: enhanced,
+      debug: result.debug,
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message || 'Gmail sync failed', connected: false });
+    send("error", { message: err.message || "Sync failed" });
+  } finally {
+    res.end();
   }
 });
 
