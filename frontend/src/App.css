@@ -65,51 +65,78 @@ body {
 .content {
   flex: 1;
   display: flex;
-  gap: 0;
+  gap: 1.5rem;
   overflow: hidden;
   min-height: 0;
+  padding: 0 1rem;
 }
 
 .gmail-card {
   flex: 0 0 50%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  border-right: 1px solid #1e293b;
-  padding: 2rem;
+  border-radius: 10px;
   min-width: 0;
   background: #0f172a;
   display: flex;
   flex-direction: column;
+  border: 1px solid #334155;
+}
+
+.gmail-card h2 {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 2rem 2rem 1rem 2rem;
+  font-size: 1.2rem;
+  color: #f8fafc;
+  font-weight: 600;
+  border-bottom: 2px solid #334155;
+}
+
+.gmail-card > *:not(h2) {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 2rem 2rem 2rem;
 }
 
 .list-section {
   flex: 0 0 50%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 2rem;
   min-width: 0;
   background: #0f172a;
   display: flex;
   flex-direction: column;
+  border-radius: 10px;
+  border: 1px solid #334155;
+}
+
+.list-section h2 {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 2rem 2rem 1rem 2rem;
+  font-size: 1.2rem;
+  color: #f8fafc;
+  font-weight: 600;
+  border-bottom: 2px solid #334155;
+}
+
+.list-section > *:not(h2) {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 2rem 2rem 2rem;
 }
 
 @media (max-width: 1024px) {
   .content {
     flex-direction: column;
+    padding: 1rem;
   }
 
   .gmail-card {
     flex: 0 0 50%;
-    border-right: none;
-    border-bottom: 1px solid #1e293b;
   }
 
   .list-section {
     flex: 0 0 50%;
-  }
-
-  .list-section {
-    border-bottom: none;
   }
 }
 
@@ -229,24 +256,6 @@ body {
   margin: 0 0 1.5rem;
   color: #f8fafc;
   font-weight: 600;
-}
-
-.gmail-card h2 {
-  font-size: 1.2rem;
-  margin: 0 0 1.5rem;
-  color: #f8fafc;
-  font-weight: 600;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #334155;
-}
-
-.list-section h2 {
-  font-size: 1.2rem;
-  margin: 0 0 1.5rem;
-  color: #f8fafc;
-  font-weight: 600;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #334155;
 }
 
 .form-row {
