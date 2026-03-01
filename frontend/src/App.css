@@ -81,17 +81,24 @@ body {
   border: 1px solid #334155;
 }
 
-.gmail-card h2 {
+.gmail-header {
   flex-shrink: 0;
-  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
   padding: 2rem 2rem 1rem 2rem;
-  font-size: 1.2rem;
-  color: #f8fafc;
-  font-weight: 600;
   border-bottom: 2px solid #334155;
 }
 
-.gmail-card > *:not(h2) {
+.gmail-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+.gmail-card > *:not(.gmail-header) {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
@@ -424,8 +431,8 @@ form textarea {
   background: #1e293b;
   border: 1px solid #334155;
   border-radius: 10px;
-  padding: 1.25rem;
-  margin-bottom: 0.75rem;
+  padding: 1.75rem;
+  margin-bottom: 0;
   transition: all 0.2s;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
@@ -433,7 +440,7 @@ form textarea {
 .suggestion-card:hover {
   border-color: #475569;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
 .suggestion-header {
@@ -441,32 +448,32 @@ form textarea {
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .suggestion-title {
   flex: 1;
   color: #f8fafc;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 600;
   line-height: 1.4;
 }
 
 .suggestion-company {
   color: #cbd5e1;
-  font-size: 0.9rem;
-  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
   font-weight: 500;
 }
 
 .suggestion-actions {
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .suggestion-buttons {
   display: flex;
   gap: 0.5rem;
-  padding-top: 0.75rem;
+  padding-top: 1rem;
   border-top: 1px solid #334155;
 }
 
@@ -476,7 +483,7 @@ form textarea {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .status {
