@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import "./App.css";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
-const STATUSES = ["Applied", "Interviewing", "Offer", "Rejected"];
+const STATUSES = ["Applied", "Interviewing", "OA", "Offer", "Rejected"];
 const CACHE_KEY = "job_tracker_gmail_cache";
 
 // --- localStorage cache helpers ---
@@ -75,6 +75,8 @@ function App() {
   const [syncDebug, setSyncDebug] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState(null);
   const [lastSynced, setLastSynced] = useState(null); // ISO timestamp of last successful sync
+  const [filteredOutEmails, setFilteredOutEmails] = useState([]);
+  const [showFilteredOut, setShowFilteredOut] = useState(false);
   const [form, setForm] = useState({
     subject: "",
     company: "",
@@ -231,17 +233,21 @@ function App() {
       } else if (msg.type === "done") {
         es.close();
         const fresh = msg.applications || [];
+        const filtered = msg.filteredOut || [];
         // Save to cache before cross-referencing so we persist the full list
         const now = new Date().toISOString();
         saveCache(fresh, gmailEmail);
         setLastSynced(now);
         // Cross-reference against saved applications to hide already-added ones
         setGmailSuggestions(filterOutSaved(fresh, applications));
+        // Store filtered-out emails
+        setFilteredOutEmails(filtered);
         setConnectionStatus((prev) => ({
           ...prev,
           lastSync: {
             connected: msg.connected,
             count: fresh.length,
+            filteredCount: filtered.length,
             debug: msg.debug,
           },
         }));
@@ -261,6 +267,7 @@ function App() {
         es.close();
         setError(msg.message || "Sync failed");
         setGmailSuggestions([]);
+        setFilteredOutEmails([]);
         setSyncStatus(null);
       }
     };
@@ -655,6 +662,56 @@ function App() {
             <p className="muted">
               Sync from Gmail to see job application emails here
             </p>
+          )}
+
+          {/* Filtered out section — collapsible, inside gmail card */}
+          {filteredOutEmails.length > 0 && (
+            <div className="filtered-out-section">
+              <button
+                type="button"
+                className="filtered-out-toggle"
+                onClick={() => setShowFilteredOut((v) => !v)}
+              >
+                <span className="filtered-out-icon">
+                  {showFilteredOut ? "▾" : "▸"}
+                </span>
+                Filtered out ({filteredOutEmails.length})
+              </button>
+              {showFilteredOut && (
+                <ul className="filtered-out-list">
+                  {filteredOutEmails.map((item, idx) => {
+                    const gmailUrl = item.threadId || item.messageId
+                      ? `https://mail.google.com/mail/u/0/#inbox/${item.threadId || item.messageId}`
+                      : null;
+                    return (
+                      <li key={item.messageId || idx} className="filtered-out-card">
+                        <div className="filtered-out-left">
+                          <div className="filtered-out-subject">
+                            {item.subject || "(no subject)"}
+                          </div>
+                          <div className="filtered-out-meta">
+                            {item.company && <span>{item.company}</span>}
+                            <span className="filtered-out-reason">
+                              {item.reason}
+                            </span>
+                          </div>
+                        </div>
+                        {gmailUrl && (
+                          <a
+                            href={gmailUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-ghost btn-sm"
+                          >
+                            📧
+                          </a>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
           )}
         </section>
 

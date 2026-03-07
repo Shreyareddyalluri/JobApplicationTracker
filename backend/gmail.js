@@ -154,8 +154,7 @@ async function getMessage(gmail, id) {
 }
 
 const JOB_KEYWORDS = [
-  "application",
-  "applied",
+  // Application confirmations
   "your application",
   "we received your application",
   "thank you for your application",
@@ -167,85 +166,214 @@ const JOB_KEYWORDS = [
   "thank you for applying",
   "thank you for your interest",
   "we'll review your application",
+  "application for",
+  "job application",
+  "re: your application",
+  "re: application",
+  // Interview signals
   "interview",
   "schedule an interview",
-  "next steps",
+  "phone screen",
+  "technical interview",
+  "1:1 with",
+  "on-site",
+  // Decision signals
   "moving forward",
+  "not moving forward",
+  "moved forward",
+  "other candidates",
+  "unfortunately",
+  "next steps",
+  "next step",
   "offer",
   "congratulations",
-  "position",
-  "role",
-  "candidate",
-  "recruiting",
-  "hiring",
-  "unfortunately",
-  "not moving forward",
-  "other candidates",
-  "job application",
-  "re: application",
-  "re: your application",
-  "re: ",
-  "application for",
-  "job posting",
+  // Employer sender signals
   "careers@",
   "recruiting@",
   "talent@",
-  "staffing",
-  "workday",
-  "people team",
   "hiring team",
-  "we received your resume",
-  "your resume",
-  "software engineer",
-  "developer",
-  "engineer",
-  "moved forward",
-  "next step",
-  "schedule a call",
-  "phone screen",
-  "technical interview",
+  "people team",
+  "recruiting team",
+  // ATS platforms (high confidence)
   "greenhouse",
   "lever.co",
   "icims",
   "jobvite",
-  "applicant",
-  "outcome",
+  "workday",
+  // Personalized
   "dear shreya",
+  "hi shreya",
+  "applicant",
+  "candidacy",
+  "candidate",
 ];
+
+// ---------------------------------------------------------------------------
+// Bulk / notification email rejection — applied BEFORE the LLM classifier
+// to save tokens and eliminate obvious false positives.
+// ---------------------------------------------------------------------------
+
+const BULK_SENDER_PATTERNS = [
+  /noreply\.jobs2web\.com/i,
+  /jobnotification@/i,
+  /jobalert@/i,
+  /job-alerts@/i,
+  /jobs-noreply@/i,
+  /noreply@linkedin\.com/i,
+  /messages-noreply@linkedin\.com/i,
+  /member@linkedin\.com/i,
+  /notifications-noreply@linkedin\.com/i,
+  /@indeedmail\.com/i,
+  /@indeed\.com/i,
+  /@glassdoor\.com/i,
+  /@ziprecruiter\.com/i,
+  /@dice\.com/i,
+  /@simplyhired\.com/i,
+  /@monster\.com/i,
+  /@careerbuilder\.com/i,
+  /@hiringagents\.ai/i,
+  /@otta\.com/i,
+  /@wellfound\.com/i,
+  /@huntr\.co/i,
+  /@hired\.com/i,
+  /@teal\.com/i,
+];
+
+const BULK_SUBJECT_PATTERNS = [
+  /new jobs? (?:for you|found|matching|based on)/i,
+  /jobs? (?:matching|related to) your/i,
+  /your job (?:alert|agent|search|match)/i,
+  /job recommendations?/i,
+  /weekly (?:job|career) (?:digest|update|roundup|summary)/i,
+  /daily (?:job|career) (?:digest|update|roundup|summary)/i,
+  /(?:top|new|trending) (?:jobs?|opportunities)/i,
+  /jobs? you might (?:like|be interested in)/i,
+  /(?:career|job) (?:newsletter|tips|advice)/i,
+  /your (?:weekly|daily|monthly) job/i,
+  /matched the following jobs/i,
+  /careers? you may be interested in/i,
+];
+
+const BULK_BODY_PATTERNS = [
+  /you are receiving this email because you joined.*talent community/i,
+  /your job agent.*matched the following/i,
+  /click to modify/i,
+  /unsubscribe.*job alert/i,
+  /add another job agent/i,
+  /change the job agent frequency/i,
+  /i'm .+, your career agent at/i,
+  /i took a look at your background/i,
+  /here are.*roles that (?:look|seem) aligned/i,
+  /strengthen your profile.*by referring/i,
+  /forward these jobs to.*friends/i,
+];
+
+/**
+ * Returns true if the email is a bulk job-board notification / AI career
+ * agent outreach rather than a direct employer communication.
+ */
+function isBulkJobNotification(from, subject, body) {
+  const fromStr = (from || "").toLowerCase();
+  const subjectStr = (subject || "").toLowerCase();
+  const bodyStr = (body || "").toLowerCase();
+
+  // Check sender
+  if (BULK_SENDER_PATTERNS.some((re) => re.test(fromStr))) {
+    // Some senders (e.g. LinkedIn) can send BOTH digests and legit confirmations.
+    // If subject looks like an actual application update, let it through.
+    const appConfirmation =
+      /your application|application (received|confirmed|status|update)/i.test(
+        subjectStr,
+      );
+    if (!appConfirmation) {
+      console.log(`[Bulk Filter] Rejected sender: ${fromStr.slice(0, 80)}`);
+      return true;
+    }
+  }
+
+  // Check subject
+  if (BULK_SUBJECT_PATTERNS.some((re) => re.test(subjectStr))) {
+    console.log(`[Bulk Filter] Rejected subject: ${subjectStr.slice(0, 80)}`);
+    return true;
+  }
+
+  // Check body for strong bulk indicators (need ≥ 2 matches to reduce false positives)
+  const bodyMatches = BULK_BODY_PATTERNS.filter((re) => re.test(bodyStr)).length;
+  if (bodyMatches >= 2) {
+    console.log(
+      `[Bulk Filter] Rejected body (${bodyMatches} bulk signals): ${subjectStr.slice(0, 80)}`,
+    );
+    return true;
+  }
+
+  return false;
+}
 
 // Keyword status inference — conservative fallback only.
 // Only match phrases that are unambiguous without full context.
 // The LLM overrides this with a more accurate reading of the full email body.
 const STATUS_PHRASES = {
-  Applied: [
-    "we have received your application",
-    "we received your application",
-    "your application has been received",
-    "application submitted",
-    "job application successfully submitted",
-  ],
-  Interviewing: [
-    "invite you for an interview",
-    "schedule an interview",
-    "would like to interview you",
-    "phone screen",
-    "video interview",
-    "technical interview",
+  // Check Rejected FIRST — prevents "decided to move forward with another
+  // candidate" from accidentally matching the "moving forward" Interviewing phrase.
+  Rejected: [
+    "we will not be moving forward with your application",
+    "will not be moving forward with your candidacy",
+    "decided not to move forward with your application",
+    "decided to move forward with another candidate",
+    "decided to pursue other candidates",
+    "not selected for this position",
+    "position has been filled",
+    "we have decided to pursue other candidates",
+    "decided not to proceed with your application",
+    "not moving forward",
+    "we regret to inform",
+    "unfortunately, we have decided",
+    "unfortunately we have made the difficult decision",
+    "concluded interviews and have decided to move forward with another",
   ],
   Offer: [
     "we are pleased to offer",
     "extend an offer",
     "delighted to offer",
     "pleased to extend an offer",
+    "we'd like to offer you",
+    "congratulations on your offer",
+    "offer letter",
+    "compensation package",
   ],
-  Rejected: [
-    "we will not be moving forward with your application",
-    "decided not to move forward with your application",
-    "not selected for this position",
-    "position has been filled",
-    "we have decided to pursue other candidates",
+  Interviewing: [
+    "invite you for an interview",
+    "schedule an interview",
+    "interview scheduled",
+    "interview has been scheduled",
+    "1:1 with our recruiter",
+    "1:1 with",
+    "would like to interview you",
+    "phone screen",
+    "video interview",
+    "video call",
+    "technical interview",
+    "on-site interview",
+    "meet with our team",
+    "next round of interviews",
+    "moving forward with your application to the interview",
+    "come prepared to share",
+    "coding challenge",
+    "take-home",
+    "schedule a call",
+  ],
+  Applied: [
+    "we have received your application",
+    "we received your application",
+    "your application has been received",
+    "application submitted",
+    "job application successfully submitted",
+    "thank you for applying",
+    "thank you for your interest",
   ],
 };
+// Priority order is determined by the object key order above:
+// Rejected → Offer → Interviewing → Applied
 function inferStatus(subject, body) {
   const text = `${(subject || "").toLowerCase()} ${(body || "").toLowerCase()}`;
   for (const [status, phrases] of Object.entries(STATUS_PHRASES)) {
@@ -315,12 +443,26 @@ function parseEmailForApplication(msg, lenient = false, acceptAny = false) {
   const body = getBodyFromPayload(payload) || snippet;
   const text = `${subject} ${body} ${from}`.toLowerCase();
   const subjectLower = (subject || "").toLowerCase();
+
+  // --- Bulk / notification filter (before keyword matching) ---
+  if (isBulkJobNotification(from, subject, body)) {
+    return {
+      filtered: true,
+      reason: "Bulk/notification email",
+      subject: subject || "(no subject)",
+      company: extractCompanyFromFrom(from),
+      from: from || "",
+      messageId: msg.id,
+      threadId: msg.threadId,
+    };
+  }
+
   const strictMatch =
     JOB_KEYWORDS.some((kw) => text.includes(kw.toLowerCase())) ||
-    /\b(application|interview|offer|position|role|candidate|recruiting|re:)\b/.test(
+    /\b(application|interview|offer|candidate|recruiting)\b/.test(
       subjectLower,
     ) ||
-    /(careers|recruit|talent|jobs|hiring|noreply)@/i.test(from || "");
+    /(careers|recruit|talent|hiring)@/i.test(from || "");
   const lenientMatch = subjectLower.includes("re:") || strictMatch;
   const isJobRelated = acceptAny || (lenient ? lenientMatch : strictMatch);
   if (!isJobRelated) return null;
@@ -358,10 +500,13 @@ async function fetchAndParseEmails(maxMessages = 100, options = {}) {
       }
     : null;
 
+  // Collect emails filtered out at any stage
+  const filteredOut = [];
+
   try {
     const gmail = await getAuthenticatedClient();
     if (!gmail)
-      return { connected: false, applications: [], debug: debug || undefined };
+      return { connected: false, applications: [], filteredOut: [], debug: debug || undefined };
 
     // Step 1: list recent inbox messages
     onProgress("status", { message: "📋 Listing inbox messages…" });
@@ -374,14 +519,14 @@ async function fetchAndParseEmails(maxMessages = 100, options = {}) {
 
     if (messageIds.length === 0) {
       if (debug) debug.error = "Gmail returned 0 messages";
-      return { connected: true, applications: [], debug: debug || undefined };
+      return { connected: true, applications: [], filteredOut: [], debug: debug || undefined };
     }
 
     onProgress("status", {
       message: `📥 Reading ${Math.min(messageIds.length, 80)} emails…`,
     });
 
-    // Step 2: fetch full messages and run keyword filter
+    // Step 2: fetch full messages and run keyword + bulk filter
     const seen = new Set();
     const candidates = [];
 
@@ -390,6 +535,17 @@ async function fetchAndParseEmails(maxMessages = 100, options = {}) {
         const msg = await getMessage(gmail, id);
         const parsed = parseEmailForApplication(msg, false);
         if (!parsed) continue;
+
+        // If it was bulk-filtered, collect it and skip
+        if (parsed.filtered) {
+          const key = parsed.threadId || parsed.messageId;
+          if (!seen.has(key)) {
+            seen.add(key);
+            filteredOut.push(parsed);
+          }
+          continue;
+        }
+
         const key = parsed.threadId || parsed.messageId;
         if (seen.has(key)) continue;
         seen.add(key);
@@ -427,6 +583,16 @@ async function fetchAndParseEmails(maxMessages = 100, options = {}) {
           });
           if (!jobRelated) {
             console.log(`[LLM] Rejected: "${parsed.subject}"`);
+            // Track LLM-rejected emails too
+            filteredOut.push({
+              filtered: true,
+              reason: "AI classified as not job-related",
+              subject: parsed.subject,
+              company: parsed.company,
+              from: "",
+              messageId: parsed.messageId,
+              threadId: parsed.threadId,
+            });
             return null;
           }
           return { ...parsed, _emailContent: emailContent };
@@ -442,13 +608,13 @@ async function fetchAndParseEmails(maxMessages = 100, options = {}) {
     const applications = classified.filter(Boolean);
     if (debug) debug.step3_ai_classified = applications.length;
     console.log(
-      `[Gmail] ${candidates.length} keyword-matched → ${applications.length} after AI classification`,
+      `[Gmail] ${candidates.length} keyword-matched → ${applications.length} after AI classification, ${filteredOut.length} filtered out`,
     );
 
-    return { connected: true, applications, debug: debug || undefined };
+    return { connected: true, applications, filteredOut, debug: debug || undefined };
   } catch (err) {
     if (debug) debug.error = err.message || String(err);
-    return { connected: false, applications: [], debug: debug || undefined };
+    return { connected: false, applications: [], filteredOut: [], debug: debug || undefined };
   }
 }
 

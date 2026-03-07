@@ -299,10 +299,14 @@ app.get("/api/gmail/sync/stream", async (req, res) => {
       );
     }
 
-    send("status", { message: `✨ Done — ${enhanced.length} emails ready` });
+    const filteredCount = (result.filteredOut || []).length;
+    send("status", {
+      message: `✨ Done — ${enhanced.length} emails ready${filteredCount > 0 ? `, ${filteredCount} filtered out` : ""}`,
+    });
     send("done", {
       connected: result.connected,
       applications: enhanced,
+      filteredOut: result.filteredOut || [],
       debug: result.debug,
     });
   } catch (err) {
